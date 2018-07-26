@@ -86,7 +86,17 @@ type CompressedImageCore interface {
 // appropriate methods computed from the minimal core.
 type compressedImageExtender struct {
 	CompressedImageCore
+
+	compression int
 }
+
+type compressedImageExtenderOpener struct {
+	CompressedImageCore
+
+	options []ImageOption
+}
+
+type ImageOption func(*compressedImageExtenderOpener) error
 
 // Assert that our extender type completes the v1.Image interface
 var _ v1.Image = (*compressedImageExtender)(nil)

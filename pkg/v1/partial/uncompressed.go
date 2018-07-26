@@ -39,6 +39,7 @@ type uncompressedLayerExtender struct {
 	UncompressedLayer
 	// TODO(mattmoor): Memoize size/hash so that the methods aren't twice as
 	// expensive as doing this manually.
+	compression int
 }
 
 // Compressed implements v1.Layer
@@ -47,7 +48,7 @@ func (ule *uncompressedLayerExtender) Compressed() (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return v1util.GzipReadCloser(u)
+	return v1util.GzipReadCloserLevel(u, ule.compression)
 }
 
 // Digest implements v1.Layer
@@ -74,7 +75,9 @@ func (ule *uncompressedLayerExtender) Size() (int64, error) {
 
 // UncompressedToLayer fills in the missing methods from an UncompressedLayer so that it implements v1.Layer
 func UncompressedToLayer(ul UncompressedLayer) (v1.Layer, error) {
-	return &uncompressedLayerExtender{ul}, nil
+	return &uncompressedLayerExtender{
+		UncompressedLayer: ul,
+	}, nil
 }
 
 // UncompressedImageCore represents the bare minimum interface a natively
@@ -209,6 +212,7 @@ func (i *uncompressedImageExtender) LayerByDiffID(diffID v1.Hash) (v1.Layer, err
 	if err != nil {
 		return nil, err
 	}
+	// return UncompressedToLayer(ul, i.compressionLevel)
 	return UncompressedToLayer(ul)
 }
 

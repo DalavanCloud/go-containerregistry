@@ -38,8 +38,9 @@ type image struct {
 var _ v1.Image = (*image)(nil)
 
 type imageOpener struct {
-	ref      name.Reference
-	buffered bool
+	ref         name.Reference
+	buffered    bool
+	compression int
 }
 
 type ImageOption func(*imageOpener) error

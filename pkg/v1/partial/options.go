@@ -12,32 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package daemon
-
-func WithBufferedOpener() ImageOption {
-	return func(i *imageOpener) error {
-		return i.setBuffered(true)
-	}
-}
-
-func WithUnbufferedOpener() ImageOption {
-	return func(i *imageOpener) error {
-		return i.setBuffered(false)
-	}
-}
+package partial
 
 func WithCompression(compression int) ImageOption {
-	return func(i *imageOpener) error {
-		return i.setCompression(compression)
+	return func(i *compressedImageExtenderOpener) error {
+		// i.compression = compression
+		return nil
 	}
-}
-
-func (i *imageOpener) setBuffered(buffer bool) error {
-	i.buffered = buffer
-	return nil
-}
-
-func (i *imageOpener) setCompression(compression int) error {
-	i.compression = compression
-	return nil
 }

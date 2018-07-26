@@ -17,6 +17,7 @@ package tarball
 import (
 	"archive/tar"
 	"bytes"
+	// "compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,19 +38,35 @@ type image struct {
 	td            *tarDescriptor
 	config        []byte
 	imgDescriptor *singleImageTarDescriptor
+	options       []ImageOption
 
 	tag *name.Tag
 }
 
 type uncompressedImage struct {
 	*image
+
+	// compression int
+	options []ImageOption
 }
 
 type compressedImage struct {
 	*image
 	manifestLock sync.Mutex // Protects manifest
 	manifest     *v1.Manifest
+
+	// compression int
+	options []ImageOption
 }
+
+type imageOpener struct {
+	opener Opener
+	tag    *name.Tag
+	// compression int
+	options []ImageOption
+}
+
+type ImageOption func(*imageOpener) error
 
 var _ partial.UncompressedImageCore = (*uncompressedImage)(nil)
 var _ partial.CompressedImageCore = (*compressedImage)(nil)
@@ -66,11 +83,27 @@ func ImageFromPath(path string, tag *name.Tag) (v1.Image, error) {
 	return Image(pathOpener(path), tag)
 }
 
-// Image exposes an image from the tarball at the provided path.
-func Image(opener Opener, tag *name.Tag) (v1.Image, error) {
-	img := &image{
+func Image(opener Opener, tag *name.Tag, options ...ImageOption) (v1.Image, error) {
+	i := &imageOpener{
 		opener: opener,
 		tag:    tag,
+		// compression: gzip.BestSpeed,
+		options: options,
+	}
+	// for _, option := range options {
+	// 	if err := option(i); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+	return i.Open()
+}
+
+// Image exposes an image from the tarball at the provided path.
+func (i *imageOpener) Open() (v1.Image, error) {
+	img := &image{
+		opener:  i.opener,
+		tag:     i.tag,
+		options: i.options,
 	}
 	if err := img.loadTarDescriptorAndConfig(); err != nil {
 		return nil, err
@@ -84,12 +117,16 @@ func Image(opener Opener, tag *name.Tag) (v1.Image, error) {
 	if compressed {
 		c := compressedImage{
 			image: img,
+			// compression: i.compression,
+			options: i.options,
 		}
 		return partial.CompressedToImage(&c)
 	}
 
 	uc := uncompressedImage{
 		image: img,
+		// compression: i.compression,
+		options: i.options,
 	}
 	return partial.UncompressedToImage(&uc)
 }

@@ -25,11 +25,12 @@ import (
 )
 
 type layer struct {
-	digest     v1.Hash
-	diffID     v1.Hash
-	size       int64
-	opener     Opener
-	compressed bool
+	digest      v1.Hash
+	diffID      v1.Hash
+	size        int64
+	opener      Opener
+	compressed  bool
+	compression int
 }
 
 func (l *layer) Digest() (v1.Hash, error) {
@@ -43,7 +44,7 @@ func (l *layer) DiffID() (v1.Hash, error) {
 func (l *layer) Compressed() (io.ReadCloser, error) {
 	rc, err := l.opener()
 	if err == nil && !l.compressed {
-		return v1util.GzipReadCloser(rc)
+		return v1util.GzipReadCloserLevel(rc, l.compression)
 	}
 
 	return rc, err
