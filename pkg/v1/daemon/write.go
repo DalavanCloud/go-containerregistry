@@ -29,12 +29,13 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 )
 
-// API interface for testing.
+// ImageLoader is the API interface for testing.
 type ImageLoader interface {
 	ImageLoad(context.Context, io.Reader, bool) (types.ImageLoadResponse, error)
+	ImageRemove(context.Context, string, types.ImageRemoveOptions) ([]types.ImageDeleteResponseItem, error)
 }
 
-// This is a variable so we can override in tests.
+// GetImageLoader is a variable so we can override in tests.
 var GetImageLoader = func() (ImageLoader, error) {
 	cli, err := client.NewEnvClient()
 	if err != nil {
@@ -68,4 +69,24 @@ func Write(tag name.Tag, img v1.Image) (string, error) {
 		return response, errors.Wrapf(err, "error reading load response body")
 	}
 	return response, nil
+}
+
+// Delete removes an image from the daemon.
+func Delete(tag name.Tag) ([]string, error) {
+	cli, err := GetImageLoader()
+	if err != nil {
+		return nil, err
+	}
+	removedImages := []string{}
+	resp, err := cli.ImageRemove(context.Background(), tag.String(), types.ImageRemoveOptions{
+		Force:         false,
+		PruneChildren: true,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "removing image")
+	}
+	for _, r := range resp {
+		removedImages = append(removedImages, r.Deleted)
+	}
+	return removedImages, nil
 }

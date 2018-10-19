@@ -34,6 +34,12 @@ func (m *MockImageLoader) ImageLoad(context.Context, io.Reader, bool) (types.Ima
 	}, nil
 }
 
+func (m *MockImageLoader) ImageRemove(c context.Context, name string, t types.ImageRemoveOptions) ([]types.ImageDeleteResponseItem, error) {
+	return []types.ImageDeleteResponseItem{
+		{Deleted: name},
+	}, nil
+}
+
 func init() {
 	GetImageLoader = func() (ImageLoader, error) {
 		return &MockImageLoader{}, nil
@@ -55,5 +61,19 @@ func TestWriteImage(t *testing.T) {
 	}
 	if !strings.Contains(response, "Loaded") {
 		t.Errorf("Error loading image. Response: %s", response)
+	}
+}
+
+func TestDeleteImage(t *testing.T) {
+	tag, err := name.NewTag("test_image_2:latest", name.WeakValidation)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	response, err := Delete(tag)
+	if err != nil {
+		t.Errorf("Error deleting image: %s", err.Error())
+	}
+	if len(response) != 1 || !strings.Contains(response[0], tag.String()) {
+		t.Errorf("Error removing image. Response: %v", response)
 	}
 }
